@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Filter: Getting Into Jane Street</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a single reading column broken by three "gates" the reader passes through, each a framed interactive panel like a trading ticket. */
+:root{
+  --paper:#eef0f2;
+  --surface:#ffffff;
+  --ink:#16191d;
+  --muted:#5b636d;
+  --rule:#cfd5dc;
+  --accent:#1f4fd1;
+  --accent-soft:#e3eaff;
+  --flag:#c2410c;
+  --flag-soft:#fdeee6;
+  --good:#17803d;
+  --font-display:"Poppins","Helvetica Neue",Arial,sans-serif;
+  --font-body:"Times New Roman",Times,serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#111418;--surface:#1a1e24;--ink:#e8ebef;--muted:#9aa3ad;--rule:#2e353e;
+    --accent:#7d9dff;--accent-soft:#1d2a4d;--flag:#f08a55;--flag-soft:#3a2216;--good:#4cc27a;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#111418;--surface:#1a1e24;--ink:#e8ebef;--muted:#9aa3ad;--rule:#2e353e;
+  --accent:#7d9dff;--accent-soft:#1d2a4d;--flag:#f08a55;--flag-soft:#3a2216;--good:#4cc27a;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{transition:none!important}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-body);font-size:1.15rem;line-height:1.6}
+a{color:var(--accent)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.wrap{max-width:46rem;margin:0 auto;padding:0 20px}
+header.top{border-bottom:1px solid var(--rule);background:var(--surface)}
+header.top .wrap{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-top:12px;padding-bottom:12px;flex-wrap:wrap}
+.byline{font-family:var(--font-mono);font-size:.78rem;color:var(--muted);letter-spacing:.02em}
+nav.toc{display:flex;gap:14px;flex-wrap:wrap;font-family:var(--font-mono);font-size:.78rem}
+nav.toc a{text-decoration:none;color:var(--muted)}
+nav.toc a:hover{color:var(--accent)}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;line-height:1.15;margin:0}
+h1{font-size:clamp(2.2rem,6vw,3.4rem);font-weight:800;letter-spacing:-.02em;margin:48px 0 16px}
+h2{font-size:1.75rem;font-weight:800;margin:56px 0 14px;letter-spacing:-.01em}
+h3{font-size:1.1rem;font-weight:700;margin:0 0 8px}
+.dek{font-size:1.3rem;color:var(--muted);margin:0 0 28px}
+p{margin:0 0 1em}
+.gate-label{font-family:var(--font-mono);font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--accent);display:block;margin-top:64px}
+.gate-label + h2{margin-top:6px}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:10px;padding:22px;margin:24px 0}
+.panel.choose{border-left:5px solid var(--accent)}
+.row{display:flex;gap:14px;flex-wrap:wrap}
+.row > *{flex:1 1 15rem}
+button.opt{font:inherit;font-family:var(--font-display);font-weight:700;font-size:1rem;text-align:left;cursor:pointer;background:var(--paper);color:var(--ink);border:2px solid var(--rule);border-radius:8px;padding:14px 16px;transition:border-color .15s,background .15s}
+button.opt:hover{border-color:var(--accent)}
+button.opt[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+button.opt small{display:block;font-family:var(--font-body);font-weight:400;color:var(--muted);font-size:.95rem;margin-top:2px}
+.resume{font-family:var(--font-mono);font-size:.85rem;line-height:1.5;background:var(--paper);border:1px solid var(--rule);border-radius:6px;padding:14px;cursor:pointer;text-align:left;color:var(--ink);width:100%}
+.resume:hover{border-color:var(--accent)}
+.resume[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.resume b{font-family:var(--font-display);font-size:1rem;display:block;margin-bottom:6px}
+.resume ul{margin:6px 0 0;padding-left:18px}
+.feedback{margin-top:16px;padding:14px 16px;border-radius:8px;background:var(--accent-soft);font-size:1.05rem}
+.feedback[hidden]{display:none}
+.feedback.warn{background:var(--flag-soft)}
+.you{background:var(--flag-soft);border-left:4px solid var(--flag);padding:12px 16px;border-radius:0 8px 8px 0;margin:20px 0;font-size:1.05rem}
+.you .tag{font-family:var(--font-mono);font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--flag);display:block;margin-bottom:2px}
+.src{font-family:var(--font-mono);font-size:.78rem;color:var(--muted)}
+.q{font-size:1.15rem;margin-bottom:12px}
+.answers{display:grid;grid-template-columns:repeat(auto-fit,minmax(7rem,1fr));gap:10px}
+.answers button{font:inherit;font-family:var(--font-mono);font-weight:600;cursor:pointer;padding:12px;border-radius:8px;border:2px solid var(--rule);background:var(--paper);color:var(--ink)}
+.answers button:hover{border-color:var(--accent)}
+.answers button.right{border-color:var(--good);background:color-mix(in srgb,var(--good) 15%,var(--surface))}
+.answers button.wrong{border-color:var(--flag);background:var(--flag-soft)}
+.timer{font-family:var(--font-mono);font-variant-numeric:tabular-nums;color:var(--muted);font-size:.85rem;margin-bottom:10px}
+details{margin-top:12px}
+summary{cursor:pointer;font-family:var(--font-display);font-weight:700;font-size:.95rem;color:var(--accent)}
+.chart{margin-top:8px}
+.bar-row{display:grid;grid-template-columns:minmax(9rem,13rem) 1fr;gap:12px;align-items:center;margin:10px 0;font-size:.95rem}
+.bar-track{position:relative;height:28px;background:var(--paper);border-radius:4px}
+.bar{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:var(--accent);display:flex;align-items:center;justify-content:flex-end;padding-right:8px;color:#fff;font-family:var(--font-mono);font-size:.82rem;font-weight:600;font-variant-numeric:tabular-nums}
+.bar.old{background:transparent;border:2px dashed var(--muted);color:var(--muted)}
+.axis{display:grid;grid-template-columns:minmax(9rem,13rem) 1fr;gap:12px;font-family:var(--font-mono);font-size:.72rem;color:var(--muted)}
+.axis .ticks{display:flex;justify-content:space-between}
+.toggle{display:inline-flex;border:2px solid var(--rule);border-radius:8px;overflow:hidden;margin-bottom:14px}
+.toggle button{font:inherit;font-family:var(--font-display);font-weight:700;font-size:.95rem;border:0;padding:10px 16px;cursor:pointer;background:var(--paper);color:var(--muted)}
+.toggle button[aria-pressed="true"]{background:var(--accent);color:#fff}
+.interview{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media (max-width:560px){.interview{grid-template-columns:1fr}.bar-row,.axis{grid-template-columns:1fr}.axis span:first-child{display:none}}
+.interview div{background:var(--paper);border-radius:8px;padding:14px;font-size:1rem}
+.interview h3{font-size:.95rem;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.result{background:var(--ink);color:var(--paper);border-radius:12px;padding:26px;margin:28px 0}
+.result h3{font-size:1.4rem;margin-bottom:10px;color:var(--paper)}
+.result .gates{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0;font-family:var(--font-mono);font-size:.8rem}
+.result .gates div{border:1px solid color-mix(in srgb,var(--paper) 30%,transparent);border-radius:6px;padding:10px}
+.result .gates strong{display:block;font-size:1rem;margin-top:4px}
+.result .gates .hard{color:#ff9b6b}
+.result .gates .ok{color:#7ee2a3}
+@media (max-width:480px){.result .gates{grid-template-columns:1fr}}
+.pull{font-family:var(--font-display);font-weight:700;font-size:1.45rem;line-height:1.3;border-top:3px solid var(--ink);border-bottom:1px solid var(--rule);padding:16px 0;margin:32px 0;text-wrap:balance}
+.cite{padding-left:2em;text-indent:-2em;font-size:1rem;margin-bottom:.8em;overflow-wrap:anywhere}
+.comment-box{border:2px dashed var(--accent);border-radius:10px;padding:20px;margin:24px 0}
+.comment-box ol{margin:8px 0 0;padding-left:22px}
+footer{border-top:1px solid var(--rule);margin-top:64px;padding:24px 0 48px;font-family:var(--font-mono);font-size:.78rem;color:var(--muted)}
+</style>
+</head>
+<body>
+
+<main class="wrap">
+  <h1>The Filter: Why Jane Street Is So Hard to Get Into</h1>
+  <p class="dek">Walk through the hiring process as an applicant and see where you get stopped.</p>
+
+  <p>Jane Street is one of the most selective places a finance student can apply. My research paper asks why: what hiring practices and candidate qualifications make a trading role there so hard to land? I read two groups of researchers who almost never cite each other. Sociologist Lauren Rivera studies how elite firms <em>actually</em> hire. Industrial-organizational psychologists study how firms <em>should</em> hire if they want to pick the people who will do the job well. I think each group explains a different barrier, and for a student at a school like UB, the first barrier is the bigger one.</p>
+  <p>I could just say that in an essay, but I wanted you to go through it yourself. The page has three gates. At each one you make a choice, and then you see what the research says usually happens next.</p>
+
+  <section id="start" aria-labelledby="start-h">
+    <span class="gate-label">Before you apply</span>
+    <h2 id="start-h">Pick where you go to school</h2>
+    <p>This one choice follows you through the whole page. Change it at any time and watch how the story shifts.</p>
+    <div class="panel choose">
+      <div class="row" role="group" aria-label="Choose your school">
+        <button class="opt" id="pick-target" data-school="target" aria-pressed="false">A "target" school<small>The short list of elite campuses firms recruit from directly</small></button>
+        <button class="opt" id="pick-ub" data-school="ub" aria-pressed="true">University at Buffalo<small>A large public university outside the usual recruiting list</small></button>
+      </div>
+    </div>
+  </section>
+
+  <section id="gate1" aria-labelledby="g1-h">
+    <span class="gate-label">Gate 1 of 3 · The résumé screen</span>
+    <h2 id="g1-h">Who gets seen at all</h2>
+    <p>Imagine you are the screener. You have a stack of applications and a few seconds for each. Pick the one candidate you would move forward.</p>
+    <div class="panel">
+      <div class="row" role="group" aria-label="Pick a résumé">
+        <button class="resume" data-pick="a" aria-pressed="false">
+          <b>Candidate A</b>
+          Princeton University, B.A. Economics<br>GPA 3.6
+          <ul><li>Varsity crew</li><li>Summer analyst at a family friend's fund</li><li>Study abroad, Florence</li></ul>
+        </button>
+        <button class="resume" data-pick="b" aria-pressed="false">
+          <b>Candidate B</b>
+          University at Buffalo, B.S. Business<br>GPA 3.9
+          <ul><li>Built a Python options-pricing model</li><li>Top 10% in a national math contest</li><li>Works 20 hrs/week while in school</li></ul>
+        </button>
+      </div>
+      <div class="feedback" id="g1-feedback" hidden></div>
+    </div>
+    <p>Rivera interviewed 120 people who make hiring decisions at elite banks, law firms and consulting firms, and she watched one firm's recruiting from the inside. In her 2011 study she found that screeners sort résumés by school prestige first. Firms recruit mainly from a short list of "target" schools, and applicants from elsewhere often get set aside before anyone weighs their skills. Screeners also gave weight to polished, expensive extracurriculars, the kind that signal a certain upbringing more than a certain ability.</p>
+    <p class="src">Source: Rivera (2011)</p>
+    <div class="you" data-for="ub"><span class="tag">For you, at UB</span>This is the gate that hurts most. Your skills may never reach a human evaluator because the first filter is the name of your school. That is why referrals, competitions and reaching out to people directly matter so much for you. They get your name in front of someone without going through the screen.</div>
+    <div class="you" data-for="target" hidden><span class="tag">For you, at a target school</span>You likely clear this gate on the school name alone. Firms come to your campus, and your résumé lands on the "read" pile by default. That helps a lot, and you didn't have to show any skill to get it.</div>
+  </section>
+
+  <section id="gate2" aria-labelledby="g2-h">
+    <span class="gate-label">Gate 2 of 3 · The technical interview</span>
+    <h2 id="g2-h">Can you think in probabilities, fast?</h2>
+    <p>Quantitative trading interviews are known for probability, expected value and mental math under time pressure. Here is a question in that style that I wrote myself. The clock is already running.</p>
+    <div class="panel">
+      <div class="timer" id="timer" aria-live="off">Time: 0:00</div>
+      <p class="q">You roll one fair six-sided die and win that many dollars. Before you take the money you may reroll once, but then you must keep the second roll. Playing well, what is this game worth?</p>
+      <div class="answers" role="group" aria-label="Answer choices">
+        <button data-v="3.50">$3.50</button>
+        <button data-v="4.00">$4.00</button>
+        <button data-v="4.25" data-right="1">$4.25</button>
+        <button data-v="4.50">$4.50</button>
+      </div>
+      <div class="feedback" id="g2-feedback" hidden></div>
+      <details>
+        <summary>Show the reasoning</summary>
+        <p style="margin-top:10px">A single roll is worth $3.50 on average. So keep any first roll above 3.50 (a 4, 5 or 6, average $5) and reroll a 1, 2 or 3 (worth $3.50). Half the time you get $5 and half the time $3.50, so the game is worth $4.25.</p>
+      </details>
+    </div>
+    <p>Once a candidate is in the room, the psychology research takes over. Sackett and colleagues (2022) re-ran decades of hiring studies and corrected an error that had inflated older estimates. Their result surprised the field. Structured interviews, where every candidate gets the same questions and the same scoring rubric, predict job performance best. General cognitive ability tests are still useful but weaker than long believed.</p>
+
+    <div class="panel">
+      <h3>How well each method predicts job performance</h3>
+      <p class="src" style="margin-bottom:6px">Validity coefficient (0 = no prediction, 1 = perfect). Sackett et al. (2022)</p>
+      <div class="chart" role="img" aria-label="Bar chart: structured interviews 0.42; cognitive ability tests 0.31 in the 2022 estimate, down from the older estimate of 0.51">
+        <div class="bar-row"><span>Structured interview</span><div class="bar-track"><div class="bar" style="width:70%">.42</div></div></div>
+        <div class="bar-row"><span>Cognitive ability test (new estimate)</span><div class="bar-track"><div class="bar" style="width:51.67%">.31</div></div></div>
+        <div class="bar-row"><span>Cognitive ability test (old estimate)</span><div class="bar-track"><div class="bar old" style="width:85%">.51</div></div></div>
+        <div class="axis"><span></span><div class="ticks"><span>0</span><span>.15</span><span>.30</span><span>.45</span><span>.60</span></div></div>
+      </div>
+    </div>
+    <p>Nye and colleagues (2022) add a second piece. <em>Specific</em> mental abilities, like quantitative reasoning, predict performance beyond general intelligence. A firm that tests narrow, job-related skills in a fixed format is using the methods with the best research behind them. So this gate is hard on purpose. It measures the skill and very little else, which means prep and ability decide who gets through.</p>
+    <p class="src">Sources: Sackett et al. (2022); Nye et al. (2022)</p>
+    <div class="you" data-for="ub"><span class="tag">For you, at UB</span>This gate is hard for everyone, and that is partly good news for you. A structured test of specific skills doesn't care much about your school's name. Once you're in the room, you're competing on closer to even terms than at Gate 1.</div>
+    <div class="you" data-for="target" hidden><span class="tag">For you, at a target school</span>Your school name stops helping here. A structured technical interview only scores your answer. Plenty of people who got through Gate 1 easily get stuck here.</div>
+  </section>
+
+  <section id="gate3" aria-labelledby="g3-h">
+    <span class="gate-label">Gate 3 of 3 · Fit</span>
+    <h2 id="g3-h">Does charm still count?</h2>
+    <p>Same candidate, two kinds of interview. Switch between them.</p>
+    <div class="panel">
+      <div class="toggle" role="group" aria-label="Interview type">
+        <button id="t-un" aria-pressed="true">Unstructured</button>
+        <button id="t-st" aria-pressed="false">Structured</button>
+      </div>
+      <div class="interview" id="iv-un">
+        <div><h3>What gets asked</h3>Whatever the interviewer feels like. "Walk me through your résumé." "What do you do for fun?" Conversation drifts toward shared hobbies.</div>
+        <div><h3>What gets rewarded</h3>Chemistry. Rivera found interviewers favor people who remind them of themselves: similar backgrounds, similar pastimes, similar style. "Fit" can decide the offer.</div>
+      </div>
+      <div class="interview" id="iv-st" hidden>
+        <div><h3>What gets asked</h3>The same job-related questions, in the same order, for every candidate. Answers are scored against a rubric written in advance.</div>
+        <div><h3>What gets rewarded</h3>The quality of the answer. Levashina and colleagues found structure reduces bias and makes charm and self-promotion less effective.</div>
+      </div>
+    </div>
+    <p>In her 2012 study, Rivera showed that "cultural matching" shapes hiring at elite firms. The evaluators she interviewed wanted people they would personally enjoy working with. Still, Rivera herself notes that fit matters less when a job is highly technical. Levashina and colleagues (2014) explain why: structured formats limit the room for a gut feeling to override the evidence. Trading is about as technical as finance jobs get, so my guess is that fit is the weakest of the three gates at a firm like Jane Street. I can't prove that from my sources, though, since none of them studied a trading firm.</p>
+    <p class="src">Sources: Rivera (2012); Levashina et al. (2014)</p>
+  </section>
+
+  <section id="verdict" aria-labelledby="v-h">
+    <span class="gate-label">Your result</span>
+    <h2 id="v-h">Where the filter catches you</h2>
+    <div class="result" aria-live="polite">
+      <h3 id="v-title">Stopped at the door</h3>
+      <div class="gates">
+        <div>Gate 1 · Résumé<strong id="v-g1" class="hard">Hardest</strong></div>
+        <div>Gate 2 · Technical<strong id="v-g2" class="hard">Hard</strong></div>
+        <div>Gate 3 · Fit<strong id="v-g3" class="ok">Smaller</strong></div>
+      </div>
+      <p id="v-text" style="margin:0">From UB, your biggest problem is getting a person to look at your résumé at all. The later gates are hard, but the research suggests they mostly judge what you can do. The first one mostly judges where you go to school.</p>
+    </div>
+    <p class="pull">Jane Street is hard to get into for two reasons: the interviews test your skill, and the résumé screen tests your school.</p>
+    <p>Rivera explains the pipeline that filters out a lot of applicants before anyone sees what they can do. The psychologists explain why the interviews after that are so hard to pass: they use the methods that best predict how someone will do on the job. Put the two together and "hard to get into" means something different depending on where you start.</p>
+  </section>
+
+  <section aria-labelledby="c-h">
+    <h2 id="c-h">The counterpoint: maybe hard is fair</h2>
+    <p>The best argument against me is that a hard process is a good process. If structured interviews on specific skills really are the best predictors we have, then a firm using them is hiring well. Levashina's review even suggests structure makes hiring <em>less</em> biased. From that angle, the technical gate is the fairest part of the whole process.</p>
+    <p>I agree with that about Gate 2. Where I disagree is Gate 1, because a fair test only helps the people who get to take it. If the résumé screen leans on school prestige the way Rivera found, then a careful, evidence-based interview sits behind a door that opens wider for some students than others.</p>
+    <p>My evidence has limits too. Sackett et al. is my strongest source because it rests on decades of studies and shows its math, but some researchers have pushed back on its correction. Rivera offers rare inside access, but she reports what evaluators say rather than measuring how often each factor decides an offer, and she studied banks, law firms and consultancies. The reviews are only as good as the studies they combine, and few of those come from finance. None of my sources studied a quantitative trading firm directly, and that is the gap my final project tries to fill.</p>
+  </section>
+
+  <section id="why" aria-labelledby="w-h">
+    <h2 id="w-h">Why I made this a website</h2>
+    <p>Our class keeps asking what changes when an argument moves from paper to new media. My answer is that the reader gets to take part. An essay goes in a straight line and asks you to trust the writer. A site like this gives you a choice, lets you change it, and shows you what happens. When you picked a résumé at Gate 1, you were briefly the person Rivera studied. If you picked the Princeton candidate, you felt how natural that shortcut is. If you picked the UB candidate, you saw what that shortcut costs someone like me.</p>
+    <p>The school buttons at the top are the most important part of the page. The research and the three gates stay the same, but your starting point changes what they mean for you. A paper could say "outcomes depend on your school." Here you can switch schools and watch your result change.</p>
+    <p>This format has downsides too. Clicking through can feel like a game and make the evidence seem more certain than it is, so I put a source label under every claim. The die question is mine, written in the style of trading interviews, not a real Jane Street question.</p>
+  </section>
+
+  <section aria-labelledby="cm-h">
+    <div class="comment-box">
+      <h3 id="cm-h">For classmates leaving a comment</h3>
+      <p style="margin:0">Pick any of these to respond to, or go your own way:</p>
+      <ol>
+        <li>Which résumé did you pick at Gate 1, and why? Did the result change your mind?</li>
+        <li>Do you buy the counterpoint that a hard, structured interview is the fair part of the process?</li>
+        <li>Is there a gate in your own field (internships, grad school, a job you want) that works like Gate 1?</li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="sources" aria-labelledby="s-h">
+    <h2 id="s-h">Works cited</h2>
+    <p class="cite">Levashina, J., Hartwell, C. J., Morgeson, F. P., &amp; Campion, M. A. (2014). The structured employment interview: Narrative and quantitative review of the research literature. <em>Personnel Psychology, 67</em>(1), 241–293. <a href="https://doi.org/10.1111/peps.12052">https://doi.org/10.1111/peps.12052</a></p>
+    <p class="cite">Nye, C. D., Ma, J., &amp; Wee, S. (2022). Cognitive ability and job performance: Meta-analytic evidence for the validity of narrow cognitive abilities. <em>Journal of Business and Psychology, 37</em>(6), 1119–1139. <a href="https://doi.org/10.1007/s10869-022-09796-1">https://doi.org/10.1007/s10869-022-09796-1</a></p>
+    <p class="cite">Rivera, L. A. (2011). Ivies, extracurriculars, and exclusion: Elite employers' use of educational credentials. <em>Research in Social Stratification and Mobility, 29</em>(1), 71–90.</p>
+    <p class="cite">Rivera, L. A. (2012). Hiring as cultural matching: The case of elite professional service firms. <em>American Sociological Review, 77</em>(6), 999–1022. <a href="https://doi.org/10.1177/0003122412463213">https://doi.org/10.1177/0003122412463213</a></p>
+    <p class="cite">Sackett, P. R., Zhang, C., Berry, C. M., &amp; Lievens, F. (2022). Revisiting meta-analytic estimates of validity in personnel selection: Addressing systematic overcorrection for restriction of range. <em>Journal of Applied Psychology, 107</em>(11), 2040–2068. <a href="https://doi.org/10.1037/apl0000994">https://doi.org/10.1037/apl0000994</a></p>
+  </section>
+</main>
+<footer><div class="wrap">Sofonias Assefa - ENG 105</div></footer>
+
+<script>
+(function(){
+  var school = "ub";
+  var verdicts = {
+    ub: {title:"Stopped at the door", g1:["Hardest","hard"], g2:["Hard","hard"], g3:["Smaller","ok"],
+      text:"From UB, your biggest problem is getting a person to look at your résumé at all. The later gates are hard, but the research suggests they mostly judge what you can do. The first one mostly judges where you go to school."},
+    target: {title:"Through the door, stopped in the room", g1:["Easier","ok"], g2:["Hardest","hard"], g3:["Smaller","ok"],
+      text:"From a target school, you get through the door almost automatically. Your real test is the technical interview, where your school name stops helping. So your hardest gate measures skill, while a UB student's hardest gate measures their school."}
+  };
+  function setSchool(s){
+    school = s;
+    document.querySelectorAll("[data-school]").forEach(function(b){b.setAttribute("aria-pressed", b.dataset.school===s ? "true":"false");});
+    document.querySelectorAll(".you").forEach(function(el){el.hidden = el.dataset.for !== s;});
+    var v = verdicts[s];
+    document.getElementById("v-title").textContent = v.title;
+    ["g1","g2","g3"].forEach(function(k){var el=document.getElementById("v-"+k); el.textContent=v[k][0]; el.className=v[k][1];});
+    document.getElementById("v-text").textContent = v.text;
+  }
+  document.querySelectorAll("[data-school]").forEach(function(b){b.addEventListener("click",function(){setSchool(b.dataset.school);});});
+
+  var fb1 = document.getElementById("g1-feedback");
+  document.querySelectorAll(".resume").forEach(function(b){
+    b.addEventListener("click",function(){
+      document.querySelectorAll(".resume").forEach(function(x){x.setAttribute("aria-pressed","false");});
+      b.setAttribute("aria-pressed","true");
+      fb1.hidden = false;
+      if(b.dataset.pick==="a"){
+        fb1.className="feedback warn";
+        fb1.textContent="You picked the Princeton candidate. Rivera's research suggests most of the evaluators she studied would have too. When you're rushing, the school name is a shortcut, and rowing and study abroad look polished. Candidate B's model and contest result never got a close look.";
+      } else {
+        fb1.className="feedback";
+        fb1.textContent="You picked the UB candidate, on skills. Rivera's findings suggest many real screeners would not have. In her research, a résumé from outside the target list was often set aside before anyone read the skills section.";
+      }
+    });
+  });
+
+  var start = Date.now(), timerEl = document.getElementById("timer"), stopped = false;
+  var iv = setInterval(function(){
+    if(stopped) return;
+    var s = Math.floor((Date.now()-start)/1000);
+    timerEl.textContent = "Time: " + Math.floor(s/60) + ":" + String(s%60).padStart(2,"0");
+  },1000);
+  var fb2 = document.getElementById("g2-feedback");
+  document.querySelectorAll(".answers button").forEach(function(b){
+    b.addEventListener("click",function(){
+      stopped = true; clearInterval(iv);
+      document.querySelectorAll(".answers button").forEach(function(x){x.classList.remove("right","wrong");});
+      fb2.hidden = false;
+      if(b.dataset.right){
+        b.classList.add("right");
+        fb2.className="feedback";
+        fb2.textContent="Correct, $4.25. In a real interview they'd hit you with a follow-up right away, like what happens if you can reroll twice. Nobody at this gate cares much where you went to school.";
+      } else {
+        b.classList.add("wrong");
+        document.querySelector('.answers button[data-right]').classList.add("right");
+        fb2.className="feedback warn";
+        fb2.textContent="Not quite. The answer is $4.25, and the reasoning is just below. Questions like this are where most people get cut at Gate 2, no matter what school they go to.";
+      }
+    });
+  });
+
+  var tUn=document.getElementById("t-un"), tSt=document.getElementById("t-st");
+  function setIv(structured){
+    tUn.setAttribute("aria-pressed", structured?"false":"true");
+    tSt.setAttribute("aria-pressed", structured?"true":"false");
+    document.getElementById("iv-un").hidden = structured;
+    document.getElementById("iv-st").hidden = !structured;
+  }
+  tUn.addEventListener("click",function(){setIv(false);});
+  tSt.addEventListener("click",function(){setIv(true);});
+  setSchool("ub");
+})();
+</script>
+</body>
+</html>
